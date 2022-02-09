@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(pcl_handler)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -211,3 +211,6 @@ add_executable(cloudsubscriber src/cloudsubscriber.cpp)
 target_link_libraries(cloudsubscriber ${catkin_LIBRARIES})
 add_executable(cloudsubscribertimer src/cloudsubscribertimer.cpp)
 target_link_libraries(cloudsubscribertimer ${catkin_LIBRARIES})
+
+install(TARGETS cloudsubscriber RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(TARGETS cloudsubscribertimer RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

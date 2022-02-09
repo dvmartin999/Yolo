@@ -14,8 +14,8 @@ dir1=os.path.dirname(os.path.dirname( __file__ ))
 # YOLO options
 YOLO_TYPE                   = "yolov3" # yolov4 or yolov3
 YOLO_FRAMEWORK              = "tf" # "tf" or "trt"
-YOLO_V3_WEIGHTS             = dir1+"/model_data/coco/yolov3.weights"
-YOLO_CUSTOM_WEIGHTS         = dir1+"/model_data/yolov3_custom_final_4class_inspected_lr5to7_part2" #"checkpoints/yolov3_custom"# used in evaluate_mAP.py and custom model detection, if not using leave False
+YOLO_V3_WEIGHTS             = dir1+"/model_data/weights/yolov3.weights"
+YOLO_CUSTOM_WEIGHTS         = False#dir1+"/model_data/weights/yolov3-tiny.weights"#yolov3_custom_final_4class_inspected_lr5to7_part2" #"checkpoints/yolov3_custom"# used in evaluate_mAP.py and custom model detection, if not using leave False
 YOLO_COCO_CLASSES           = dir1+"/model_data/coco/coco.names"
 YOLO_STRIDES                = [8, 16, 32]
 YOLO_IOU_LOSS_THRESH        = 0.5

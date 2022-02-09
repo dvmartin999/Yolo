@@ -2,6 +2,7 @@
 import sys
 import os
 import rospy
+import numpy as np
 
 from sensor_msgs.msg import Image, CompressedImage, TimeReference
 #from sensor_msgs.msg import CompressedImage
@@ -37,11 +38,15 @@ class object_detector:
         self.timer_pub = rospy.Publisher("/Tracker/Timer",TimeReference, queue_size=1)
 
         print("[INFO] Initialize ROS Subscribers...")
-        rospy.Subscriber("/zed2/zed_node/left/image_rect_color/compressed",CompressedImage,self.callback_sub,queue_size=1)
+        self.processing_image = False # Need to mark when callback is active, so we're only processing one image at a time
+        rospy.Subscriber("/zed2/zed_node/left/image_rect_color",Image,self.callback_raw_image,queue_size=1)
+        self.class_name_list = read_class_names(YOLO_COCO_CLASSES)
 
         print("[INFO] Loading complete")
         self.init_time_delay = 0
-        self.callback()
+        
+        # Recursion doesn't work great in Python, which limits the recursion depth
+        #self.callback()
 
 
     def callback(self):
@@ -91,6 +96,57 @@ class object_detector:
         self.boxes_pub.publish(detect)
 
         self.callback()   
+
+    def callback_raw_image(self, image):
+        if self.processing_image:
+            return
+        self.processing_image = True
+        rospy.loginfo("Received image with size: %d x %d", image.height, image.width)
+        time1 = rospy.Time.now().to_sec()
+        self.timer.header = image.header
+        self.timer.header.frame_id = "zed2_left_camera_frame"
+        self.timer.time_ref = rospy.Time.now() 
+        self.timer_pub.publish(self.timer)
+        cv_image = np.frombuffer(image.data, dtype=np.uint8).reshape(image.height, image.width, 4)
+        _ , bboxes=detect_image(self.yolo, cv_image, "", input_size=YOLO_INPUT_SIZE, show=False,CLASSES=YOLO_COCO_CLASSES,score_threshold=0.3, iou_threshold=0.1, rectangle_colors=(255,0,0))
+        detect = Detection2DArray()
+        detect.header = image.header
+
+        for Object in bboxes:
+            detection = Detection2D()
+            hypo = ObjectHypothesisWithPose()
+            #Start x
+            x1 = Object[0]
+            #End x
+            x2 = Object[2]
+            #Start y
+            y1 = Object[1]
+            #end y
+            y2 = Object[3]
+
+            #Size x
+            Sx = x2-x1
+            #Size y
+            Sy = y2-y1
+            #Center x
+            Cx = x1+Sx/2
+            #Center y
+            Cy = y1+Sy/2
+
+            detection.bbox.center.x = Cx
+            detection.bbox.center.y = Cy
+            detection.bbox.size_x   = Sx
+            detection.bbox.size_y   = Sy
+
+            hypo.id = int(Object[5])
+            hypo.score = Object[4]
+            rospy.loginfo("Object %s found at (%d, %d)->(%d, %d)", self.class_name_list[hypo.id], x1, y1, x2, y2)
+
+            detection.results = [hypo,]
+            detection.is_tracking = False
+            detect.detections.append(detection)
+        self.boxes_pub.publish(detect)
+        self.processing_image = False
 
 
 def main(args):
